@@ -10,6 +10,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.FeatureInfo;
@@ -56,9 +57,11 @@ import com.learnium.RNDeviceInfo.resolver.DeviceTypeResolver;
 
 import java.lang.reflect.Method;
 import java.net.InetAddress;
+import java.net.SocketException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Collections;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.lang.Runtime;
@@ -1169,6 +1172,74 @@ public class RNDeviceModule extends ReactContextBaseJavaModule {
       result.putString("id", "unknown");
       result.putInt("scope", -1);
       promise.resolve(result);
+    }
+  }
+
+
+  private static String bytesToString(byte[] bytes) {
+    if (bytes == null || bytes.length == 0) {
+      return null;
+    }
+    StringBuilder buf = new StringBuilder();
+    for (byte b : bytes) {
+      buf.append(String.format("%02X:", b));
+    }
+    if (buf.length() > 0) {
+      buf.deleteCharAt(buf.length() - 1);
+    }
+    return buf.toString();
+  }
+
+  @ReactMethod
+  public String getMacByNetworkInterface() {
+    Enumeration<NetworkInterface> interfaces = null;
+    try {
+      interfaces = NetworkInterface.getNetworkInterfaces();
+    } catch (SocketException e) {
+      e.printStackTrace();
+    }
+    String hardWareAddress = null;
+    NetworkInterface iF = null;
+    if (interfaces == null) {
+      return null;
+    }
+    while (interfaces.hasMoreElements()) {
+      iF = interfaces.nextElement();
+      try {
+        if (iF.getName().equals("eth0")) {
+          hardWareAddress = bytesToString(iF.getHardwareAddress());
+          if (hardWareAddress != null)
+            break;
+        }
+      } catch (SocketException e) {
+        e.printStackTrace();
+      }
+    }
+    return hardWareAddress;
+  }
+
+  @ReactMethod
+  public void getInstalledApps(Promise promise) {
+    try {
+      PackageManager pm = getReactApplicationContext().getPackageManager();
+      // 注意：在 Android 11+ 中需在 Manifest 声明权限或 queries
+      List<PackageInfo> packages = pm.getInstalledPackages(0);
+      WritableArray apps = Arguments.createArray();
+
+      for (PackageInfo packageInfo : packages) {
+        ApplicationInfo applicationInfo = packageInfo.applicationInfo;
+        // 过滤掉系统应用 (FLAG_SYSTEM)
+        if (applicationInfo != null && (applicationInfo.flags & ApplicationInfo.FLAG_SYSTEM) == 0) {
+          WritableMap app = Arguments.createMap();
+          app.putString("packageName", packageInfo.packageName);
+          app.putString("versionName", packageInfo.versionName);
+          app.putString("appName", pm.getApplicationLabel(applicationInfo).toString());
+          apps.pushMap(app);
+        }
+      }
+      promise.resolve(apps);
+    } catch (Exception e) {
+      promise.reject("ERROR_GETTING_APPS", e);
     }
   }
 }
