@@ -381,44 +381,6 @@ public class RNDeviceModule extends ReactContextBaseJavaModule {
   @SuppressLint("HardwareIds")
   @ReactMethod(isBlockingSynchronousMethod = true)
   public String getMacAddressSync() {
-//    WifiInfo wifiInfo = getWifiInfo();
-//    String macAddress = "";
-//    if (wifiInfo != null) {
-//      macAddress = wifiInfo.getMacAddress();
-//    }
-//
-//    String permission = "android.permission.INTERNET";
-//    int res = getReactApplicationContext().checkCallingOrSelfPermission(permission);
-//
-//    if (res == PackageManager.PERMISSION_GRANTED) {
-//      try {
-//        List<NetworkInterface> all = Collections.list(NetworkInterface.getNetworkInterfaces());
-//        for (NetworkInterface nif : all) {
-//          if (!nif.getName().equalsIgnoreCase("wlan0")) continue;
-//
-//          byte[] macBytes = nif.getHardwareAddress();
-//          if (macBytes == null) {
-//            macAddress = "";
-//          } else {
-//
-//            StringBuilder res1 = new StringBuilder();
-//            for (byte b : macBytes) {
-//              res1.append(String.format("%02X:",b));
-//            }
-//
-//            if (res1.length() > 0) {
-//              res1.deleteCharAt(res1.length() - 1);
-//            }
-//
-//            macAddress = res1.toString();
-//          }
-//        }
-//      } catch (Exception ex) {
-//        // do nothing
-//      }
-//    }
-//
-//    return macAddress;
     return MacUtils.getMac(getReactApplicationContext());
   }
 
@@ -1229,9 +1191,7 @@ public class RNDeviceModule extends ReactContextBaseJavaModule {
 
       for (PackageInfo packageInfo : packages) {
         ApplicationInfo applicationInfo = packageInfo.applicationInfo;
-//        // 过滤掉系统应用 (FLAG_SYSTEM)
-//        if (applicationInfo != null && (applicationInfo.flags & ApplicationInfo.FLAG_SYSTEM) == 0) {
-//          // 过滤掉系统应用 (FLAG_SYSTEM)
+        // 过滤掉系统应用 (FLAG_SYSTEM)
         if (applicationInfo != null) {
           WritableMap app = Arguments.createMap();
           app.putString("packageName", packageInfo.packageName);
@@ -1244,5 +1204,12 @@ public class RNDeviceModule extends ReactContextBaseJavaModule {
     } catch (Exception e) {
       promise.reject("ERROR_GETTING_APPS", e);
     }
+  }
+
+  public static boolean KEY_EVENT_DISABLED = false;
+
+  @ReactMethod
+  public void setKeyEventDisabled(boolean disabled) {
+    this.KEY_EVENT_DISABLED = disabled;
   }
 }
